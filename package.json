@@ -1,0 +1,25 @@
+{
+  "name": "websockets-lecture-examples",
+  "version": "1.0.0",
+  "description": "Teaching aid demonstrating the evolution of real-time web communication",
+  "main": "index.js",
+  "scripts": {
+    "example1": "cd 01-http-refresh && node server.js",
+    "example2": "cd 02-http-polling && node server.js",
+    "example3": "cd 03-http-longpolling && node server.js",
+    "example4": "cd 04-websockets && node server.js"
+  },
+  "keywords": [
+    "websockets",
+    "http",
+    "polling",
+    "real-time",
+    "education"
+  ],
+  "author": "Teaching Example",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  }
+}

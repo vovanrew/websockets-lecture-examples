@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Example 4: WebSockets</title>
+    
+    <!-- 🎓 Teaching Comment: Final example with the most polished UI -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .app-container {
+            width: 100%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        /* 🔧 Technical Comment: Modern header design */
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255,255,255,0.1) 10px,
+                rgba(255,255,255,0.1) 20px
+            );
+            animation: slide 20s linear infinite;
+        }
+        
+        @keyframes slide {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 🎓 Teaching Comment: Connection status bar */
+        .connection-bar {
+            background-color: #2d3436;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ws-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #636e72;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .ws-indicator.connected {
+            background-color: #00b894;
+            box-shadow: 0 0 10px rgba(0, 184, 148, 0.5);
+        }
+        
+        .ws-indicator.connected::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #00b894;
+            animation: ripple 2s infinite;
+        }
+        
+        @keyframes ripple {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        /* 🔧 Technical Comment: Feature showcase */
+        .features-banner {
+            background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .features-banner h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .feature-list {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            color: #424242;
+        }
+        
+        .feature-icon {
+            font-size: 20px;
+        }
+        
+        /* 🔧 Technical Comment: User list sidebar */
+        .chat-area {
+            display: flex;
+            height: 400px;
+        }
+        
+        .user-list {
+            width: 200px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .user-list h4 {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .user-item:hover {
+            background-color: #e9ecef;
+        }
+        
+        .user-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #00b894;
+        }
+        
+        /* 🔧 Technical Comment: Messages area */
+        .messages-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #fafafa;
+        }
+        
+        .system-message {
+            text-align: center;
+            color: #6c757d;
+            font-size: 13px;
+            margin: 10px 0;
+            font-style: italic;
+        }
+        
+        .message {
+            background-color: white;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            animation: messageSlide 0.3s ease;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        
+        .message:hover {
+            transform: translateX(5px);
+        }
+        
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.own {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: 20%;
+        }
+        
+        .message .username {
+            font-weight: 600;
+            margin-right: 8px;
+            color: #667eea;
+        }
+        
+        .message.own .username {
+            color: white;
+        }
+        
+        .message .timestamp {
+            font-size: 12px;
+            opacity: 0.7;
+            float: right;
+        }
+        
+        /* 🔧 Technical Comment: Input area */
+        .input-area {
+            display: flex;
+            padding: 20px;
+            background-color: white;
+            border-top: 1px solid #dee2e6;
+            gap: 10px;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #messageInput:focus {
+            border-color: #667eea;
+        }
+        
+        #sendButton {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        #sendButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        #sendButton:active {
+            transform: translateY(0);
+        }
+        
+        /* 🎓 Teaching Comment: Debug console styling */
+        .debug-console {
+            background-color: #1e272e;
+            color: #d2dae2;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 120px;
+            overflow-y: auto;
+            border-top: 1px solid #34495e;
+        }
+        
+        .debug-entry {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+        }
+        
+        .debug-time {
+            color: #74b9ff;
+            flex-shrink: 0;
+        }
+        
+        .debug-message {
+            color: #dfe6e9;
+        }
+        
+        .debug-message.error {
+            color: #ff6b6b;
+        }
+        
+        .debug-message.success {
+            color: #00b894;
+        }
+        
+        .debug-message.info {
+            color: #74b9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 🎓 Teaching Comment: Header showcasing WebSockets -->
+        <div class="header">
+            <h1>Example 4: WebSockets</h1>
+            <p>True bidirectional real-time communication!</p>
+        </div>
+        
+        <!-- 🔧 Technical Comment: Connection status bar -->
+        <div class="connection-bar">
+            <div class="connection-status">
+                <div class="ws-indicator" id="wsIndicator"></div>
+                <span id="connectionText">Підключення...</span>
+            </div>
+            <div>
+                <span id="latency">Затримка: --мс</span> | 
+                <span id="currentUser">Користувач: Завантаження...</span>
+            </div>
+        </div>
+        
+        <!-- 🎓 Teaching Comment: Feature showcase -->
+        <div class="features-banner">
+            <h3>🚀 WebSocket Функції в дії</h3>
+            <div class="feature-list">
+                <div class="feature">
+                    <span class="feature-icon">⚡</span>
+                    <span>Миттєва доставка</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">↔️</span>
+                    <span>Двосторонній зв'язок</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">👥</span>
+                    <span>Присутність користувачів</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 🔧 Technical Comment: Main chat area -->
+        <div class="chat-area">
+            <!-- User list -->
+            <div class="user-list">
+                <h4>Користувачі онлайн (<span id="userCount">0</span>)</h4>
+                <div id="userList"></div>
+            </div>
+            
+            <!-- Messages area -->
+            <div class="messages-container">
+                <div id="messages">
+                    <!-- Messages will appear here -->
+                </div>
+                
+                <div class="input-area">
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        placeholder="Введіть ваше повідомлення..."
+                        maxlength="500"
+                        autocomplete="off"
+                    />
+                    <button id="sendButton">Надіслати</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 🎓 Teaching Comment: Debug console for educational visibility -->
+        <div class="debug-console" id="debugConsole">
+            <!-- Debug messages will appear here -->
+        </div>
+    </div>
+    
+    <!-- 🎓 Teaching Comment: Load our WebSocket-powered JavaScript -->
+    <script src="chat.js"></script>
+</body>
+</html>

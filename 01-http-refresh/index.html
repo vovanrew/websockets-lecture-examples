@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат Приклад 1: Базовий HTTP (Ручне Оновлення)</title>
+    
+    <!-- 🎓 Навчальний коментар: Простий, чистий CSS для освітньої ясності -->
+    <style>
+        /* 🔧 Технічний коментар: CSS скидання та базові стилі */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* 🔧 Технічний коментар: Стилізація заголовка */
+        .header {
+            background-color: #ff6b6b;
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        /* 🔧 Технічний коментар: Контейнер для інтерфейсу чату */
+        .chat-container {
+            background-color: white;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        /* 🔧 Технічний коментар: Відображення інформації про користувача */
+        .user-info {
+            background-color: #f8f9fa;
+            padding: 10px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        /* 🔧 Технічний коментар: Область відображення повідомлень */
+        #messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        
+        /* 🔧 Технічний коментар: Стилізація окремого повідомлення */
+        .message {
+            background-color: white;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .message .username {
+            font-weight: bold;
+            color: #007bff;
+            margin-right: 5px;
+        }
+        
+        .message .timestamp {
+            font-size: 12px;
+            color: #6c757d;
+            float: right;
+        }
+        
+        /* 🔧 Технічний коментар: Стилізація області вводу */
+        .input-area {
+            display: flex;
+            padding: 20px;
+            background-color: white;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        
+        #sendButton {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        #sendButton:hover {
+            background-color: #0056b3;
+        }
+        
+        /* 🔧 Технічний коментар: Стилізація попереджувального повідомлення */
+        .warning-message {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        /* 🔧 Технічний коментар: Стилізація кнопки оновлення */
+        .refresh-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px auto;
+            display: block;
+        }
+        
+        .refresh-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <!-- 🎓 Навчальний коментар: Секція заголовка, що пояснює приклад -->
+    <div class="header">
+        <h1>Приклад 1: Базова HTTP Комунікація</h1>
+        <p>Повідомлення оновлюються лише при оновленні сторінки</p>
+    </div>
+    
+    <!-- 🎓 Навчальний коментар: Головний інтерфейс чату -->
+    <div class="chat-container">
+        <!-- 🔧 Технічний коментар: Відображення поточного користувача -->
+        <div class="user-info">
+            Чат від імені: <strong id="currentUser">Завантаження...</strong>
+        </div>
+        
+        <!-- 🎓 Навчальний коментар: Попередження про необхідність ручного оновлення -->
+        <div class="warning-message">
+            ⚠️ <strong>Примітка:</strong> Ви повинні вручну оновити сторінку, щоб побачити нові повідомлення від інших користувачів!
+            <button class="refresh-button" onclick="location.reload()">🔄 Оновити сторінку</button>
+        </div>
+        
+        <!-- 🔧 Технічний коментар: Повідомлення будуть відображатися тут -->
+        <div id="messages">
+            <!-- Повідомлення будуть завантажені тут -->
+        </div>
+        
+        <!-- 🔧 Технічний коментар: Область вводу для відправки повідомлень -->
+        <div class="input-area">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Введіть ваше повідомлення тут..."
+                maxlength="500"
+            />
+            <button id="sendButton">Надіслати</button>
+        </div>
+    </div>
+    
+    <!-- 🎓 Навчальний коментар: Завантажуємо наш JavaScript файл -->
+    <script src="chat.js"></script>
+</body>
+</html>

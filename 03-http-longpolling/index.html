@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат Приклад 3: HTTP Довге Опитування</title>
+    
+    <!-- 🎓 Навчальний коментар: Покращена стилізація для прикладу довгого опитування -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* 🔧 Технічний коментар: Заголовок з яскравим градієнтом */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .chat-container {
+            background-color: white;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .user-info {
+            background-color: #f8f9fa;
+            padding: 10px 20px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 14px;
+            color: #6c757d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* 🎓 Навчальний коментар: Індикатор статусу з'єднання */
+        #connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #6c757d;
+            transition: background-color 0.3s;
+        }
+        
+        .status-dot.connected {
+            background-color: #28a745;
+            animation: breathe 2s infinite;
+        }
+        
+        .status-dot.waiting {
+            background-color: #ffc107;
+        }
+        
+        .status-dot.error {
+            background-color: #dc3545;
+        }
+        
+        @keyframes breathe {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* 🔧 Технічний коментар: Банер покращення */
+        .improvement-banner {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border: 1px solid #bbdefb;
+            color: #1565c0;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        /* 🔧 Технічний коментар: Відображення інформації про з'єднання */
+        .connection-info {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            margin: 0 20px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #6c757d;
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-item .label {
+            display: block;
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        
+        .info-item .value {
+            font-weight: bold;
+            color: #495057;
+            font-size: 16px;
+        }
+        
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        
+        .message {
+            background-color: white;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+        
+        .message.new {
+            animation: slideInFade 0.5s ease;
+            background-color: #f0f8ff;
+        }
+        
+        @keyframes slideInFade {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message .username {
+            font-weight: bold;
+            color: #667eea;
+            margin-right: 5px;
+        }
+        
+        .message .timestamp {
+            font-size: 12px;
+            color: #6c757d;
+            float: right;
+        }
+        
+        .input-area {
+            display: flex;
+            padding: 20px;
+            background-color: white;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        #messageInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        
+        #sendButton {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+        
+        #sendButton:hover {
+            transform: scale(1.05);
+        }
+        
+        #sendButton:active {
+            transform: scale(0.95);
+        }
+        
+        /* 🔧 Технічний коментар: Панель налагодження для навчальних цілей */
+        .debug-panel {
+            background-color: #2d3436;
+            color: #dfe6e9;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .debug-entry {
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+        
+        .debug-entry.important {
+            color: #74b9ff;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- 🎓 Навчальний коментар: Заголовок, що пояснює довге опитування -->
+    <div class="header">
+        <h1>Приклад 3: HTTP Довге Опитування</h1>
+        <p>Сервер тримає з'єднання відкритим, доки не прийдуть нові повідомлення</p>
+    </div>
+    
+    <div class="chat-container">
+        <!-- 🔧 Технічний коментар: Користувач та статус з'єднання -->
+        <div class="user-info">
+            <div>Чат від імені: <strong id="currentUser">Завантаження...</strong></div>
+            <div id="connection-status">
+                <span class="status-dot"></span>
+                <span id="status-text">Підключення...</span>
+            </div>
+        </div>
+        
+        <!-- 🎓 Навчальний коментар: Підкреслюємо покращення -->
+        <div class="improvement-banner">
+            🚀 <strong>Велике покращення:</strong> Майже миттєві оновлення з ефективним використанням ресурсів сервера!
+        </div>
+        
+        <!-- 🔧 Технічний коментар: Статистика з'єднання -->
+        <div class="connection-info">
+            <div class="info-item">
+                <span class="label">Час з'єднання</span>
+                <span class="value" id="connectionTime">0с</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Отримано повідомлень</span>
+                <span class="value" id="messageCount">0</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Перепідключень</span>
+                <span class="value" id="reconnectCount">0</span>
+            </div>
+        </div>
+        
+        <div id="messages">
+            <!-- Повідомлення будуть завантажені тут -->
+        </div>
+        
+        <!-- 🎓 Навчальний коментар: Панель налагодження для демонстрації довгого опитування в дії -->
+        <div class="debug-panel" id="debugPanel">
+            <div class="debug-entry important">🔧 Консоль налагодження - Спостерігайте за довгим опитуванням в дії!</div>
+        </div>
+        
+        <div class="input-area">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Введіть ваше повідомлення тут..."
+                maxlength="500"
+            />
+            <button id="sendButton">Надіслати</button>
+        </div>
+    </div>
+    
+    <!-- 🎓 Навчальний коментар: Завантажуємо наш JavaScript для довгого опитування -->
+    <script src="chat.js"></script>
+</body>
+</html>
